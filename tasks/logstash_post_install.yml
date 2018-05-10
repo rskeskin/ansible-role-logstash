@@ -1,0 +1,108 @@
+---
+# Copyright 2018, Yildiz Technical University Computer Engineering Department
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#Copy the config template
+- name: Copy Configuration File
+  template:
+    src: logstash.yml.j2
+    dest: "{{ls_conf_dir}}/logstash.yml"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+    force: yes
+
+#Copy the instance specific default file
+- name: Copy Default File for Instance
+  template:
+    src: logstash.j2
+    dest: "{{default_file}}"
+    mode: 0644
+    force: yes
+
+#Copy the instance specific init file
+- name: Copy Debian Init File for Instance
+  template:
+    src: init/debian/logstash.j2
+    dest: "{{init_script}}"
+    mode: 0755
+    force: yes
+  when: ansible_os_family == 'Debian' and not ansible_service_mgr == 'systemd'
+
+#Copy the instance specific init file
+- name: Copy Redhat Init File for Instance
+  template:
+    src: init/redhat/logstash.j2
+    dest: "{{init_script}}"
+    mode: 0755
+    force: yes
+  when: ansible_os_family == 'RedHat' and not ansible_service_mgr == 'systemd'
+
+#Copy the systemd specific file if systemd is installed
+- name: Copy Systemd File for Instance
+  template:
+    src: systemd/logstash.j2
+    dest: "{{sysd_script}}"
+    mode: 0644
+    force: yes
+  when: ansible_service_mgr == 'systemd'
+  notify:
+  - reload systemd configuration
+
+#Copy the logging.yml
+- name: Copy log4j2.properties File for Instance
+  template:
+    src: "{{ls_config_log4j2}}"
+    dest: "{{ls_conf_dir}}/log4j2.properties"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+    force: yes
+
+- name: Copy jvm.options File for Instance
+  template:
+    src: jvm.options.j2
+    dest: "{{ls_conf_dir}}/jvm.options"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+    force: yes
+
+- name: Copy pipelines.yml File for Instance
+  template:
+    src: pipelines.yml.j2
+    dest: "{{ls_conf_dir}}/pipelines.yml"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+    force: yes
+
+- name: Copy startup.options File for Instance
+  template:
+    src: startup.options.j2
+    dest: "{{ls_conf_dir}}/startup.options"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+    force: yes
+
+- name: Create Logstash configuration file
+  template:
+    src: rsyslog-elasticsearch.conf.j2
+    dest: "{{ls_conf_dir}}/conf.d/01-rsyslog-elasticsearch.conf"
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+    mode: 0644
+  notify: restart logstash
+

@@ -1,0 +1,83 @@
+---
+# Copyright 2018, Yildiz Technical University Computer Engineering Department
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: os-specific vars
+  include_vars: "{{ansible_os_family}}.yml"
+
+- name: Create logstash group
+  group:
+    name: "{{ ls_group }}"
+    state: present
+    system: yes
+
+- name: Create logstash user
+  user:
+    name: "{{ ls_user }}"
+    state: present
+    system: yes
+    createhome: no
+    group: "{{ ls_group }}"
+
+- name: Create Directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ls_user }}"
+    group: "{{ ls_group }}"
+  with_items:
+   - "{{ ls_pid_dir }}"
+   - "{{ ls_log_dir }}"
+   - "{{ ls_conf_dir }}"
+   - "{{ ls_data_dirs }}"
+
+- name: Refresh repo
+  apt:
+    update_cache: yes
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure apt-transport-https installed
+  apt:
+    name: apt-transport-https
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure jre installed
+  apt:
+    name: "{{ java }}"
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Add elastic apt-key
+  apt_key:
+    url: "{{ ls_apt_key }}"
+    state: present 
+
+- name: Add elastic deb repo
+  apt_repository:
+    repo: "{{ ls_apt_url }}"
+    state: present
+    filename: "elastic-{{ls_major_version}}"
+
+- name: register open_jdk version
+  shell: java -version 2>&1 | grep OpenJDK
+  register: open_jdk
+  ignore_errors: yes
+  changed_when: false
+
+#https://github.com/docker-library/openjdk/issues/19 - ensures tests pass due to java 8 broken certs
+- name: refresh the java ca-certificates
+  command: /var/lib/dpkg/info/ca-certificates-java.postinst configure
+  when: ansible_distribution == 'Ubuntu' and open_jdk.rc == 0
+  changed_when: false

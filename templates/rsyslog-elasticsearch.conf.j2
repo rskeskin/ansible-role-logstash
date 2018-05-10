@@ -1,0 +1,12 @@
+input {
+  syslog { }
+}
+
+output {
+{% for outserver in groups['elasticsearch_all'] %}
+  elasticsearch {
+    hosts => {{ hostvars[outserver]['ansible_host'] }}
+  }
+
+{% endfor %}
+}

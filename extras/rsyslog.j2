@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+
+$WorkDirectory /var/spool/rsyslog
+$template RFC3164fmt,"<%PRI%>%TIMESTAMP% %HOSTNAME% %syslogtag%%msg%"
+
+# Log shipment rsyslog target servers
+{% for server in groups['logstash_all'] %}
+$ActionQueueFileName {{ server }}
+$ActionQueueSaveOnShutdown on
+$ActionQueueType LinkedList
+$ActionResumeRetryCount 250
+*.* @@{{ hostvars[server]['ansible_host'] }}:514;RFC3164fmt
+{% endfor %}

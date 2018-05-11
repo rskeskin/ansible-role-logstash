@@ -39,3 +39,20 @@
   environment: "{{ deployment_environment_variables | default({}) }}"
   tags:
     - logstash
+
+- name: Forward rsyslog
+  hosts: rsyslog_all
+  gather_facts: "{{ osa_gather_facts | default(True) }}"
+  user: root
+  tasks:
+    - name: Write rsyslog config for remote logging
+      template:
+        src: "rsyslog.j2"
+        dest: "/etc/rsyslog.d/51-remote-logging.conf"
+        owner: "root"
+        group: "root"
+
+    - name: restart rsyslog
+      service:
+        name: rsyslog
+        state: restarted

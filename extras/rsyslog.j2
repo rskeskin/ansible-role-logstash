@@ -9,5 +9,5 @@ $ActionQueueFileName {{ server }}
 $ActionQueueSaveOnShutdown on
 $ActionQueueType LinkedList
 $ActionResumeRetryCount 250
-*.* @@{{ hostvars[server]['ansible_host'] }}:514;RFC3164fmt
+*.* @@{{ hostvars[server]['ansible_host'] }}:10514;RFC3164fmt
 {% endfor %}
